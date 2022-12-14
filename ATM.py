@@ -9,6 +9,7 @@ class ATM:
         self.select=0
         self.CustPin=0
         self.CustAge=0
+        self.CustAdhaar=0
         self.intial_bal=0.0
         self.CustContact=0
         self.CustEmail=""
@@ -19,8 +20,8 @@ class ATM:
         self.amount=0.0
         self.curBal=0.0
         self.savingBal=0.0
-    def getDataFromDB(self):
-        self.ls=list(self.col_bal.find({"clientId":self.CustEmail}))
+    def getDataFromDB(self,val):
+        self.ls=list(self.col_bal.find({"adhaar":self.CustAdhaar}))
         for self.i in self.ls:
             for self.key, self.val in self.i.items():
                 if self.key=='Account_Type' and self.val=='Current':
@@ -32,17 +33,18 @@ class ATM:
                     for self.key1, self.val1 in self.i.items():
                         if self.key1=='balance':
                             return float(self.val1)
+        return 0
     def getAccType(self):
-        self.ls=list(self.col_client.find({"clientId":self.CustEmail}))
+        self.ls=list(self.col_client.find({"adhaar":self.CustAdhaar}))
         for self.i in self.ls:
             for self.key, self.val in self.i.items():
                 if self.key=='Account_Type' and self.val=='Current':
-                    return self.setAccType(self.val)         
+                    return self.val         
                 if self.key=='Account_Type' and self.val=='Saving':
-                    return self.setAccType(self.val)
+                    return self.val
 
     def getUpdateBal(self):
-        self.ls=list(self.col_bal.find({"clientId":self.CustEmail}))
+        self.ls=list(self.col_bal.find({"adhaar":self.CustAdhaar}))
         for self.i in self.ls:
             for self.key, self.val in self.i.items():
                 if self.val=='Current':
@@ -54,15 +56,12 @@ class ATM:
                     for self.key1, self.val1 in self.i.items():
                         if self.key1=='balance':
                             return float(self.val1)
-    # def printdata(self):
-    #     self.getDataFromDB()
-    #     print(self.savingBal)
 
-    
     def clientInput(self):
         self.data={'fname':self.CustfName,
         'lname':self.CustlName,
         'email':self.CustEmail,
+        'adhaar':self.CustAdhaar,
         'age':self.CustAge,
         'gender':self.Custgender,
         'contact':self.CustContact,
@@ -72,76 +71,68 @@ class ATM:
         }
         self.col_client.insert_one(self.data)
     def balanceUpdate(self):
-        if self.col_bal.count_documents({'clientId':self.CustEmail})==0:
+        if self.col_bal.count_documents({'adhaar':self.CustAdhaar})==0:
             if self.custAcctype=="Current":
-                self.data={'clientId':self.CustEmail,
+                self.data={'adhaar':self.CustAdhaar,
                 'Account_Type':self.custAcctype,
                 'balance':self.intial_bal}
                 self.col_bal.insert_one(self.data)
             else:
-                self.data={'clientId':self.CustEmail,
+                self.data={'adhaar':self.CustAdhaar,
                 'Account_Type':self.custAcctype,
                 'balance':self.intial_bal}
                 self.col_bal.insert_one(self.data)
         else:
-            self.ls=list(self.col_bal.find({"clientId":self.CustEmail}))
+            self.ls=list(self.col_bal.find({"adhaar":self.CustAdhaar}))
             for self.i in self.ls:
                 for self.key, self.val in self.i.items():
                     if self.key=='Account_Type' and self.val=='Current':
                         for self.key1, self.val1 in self.i.items():
                             if self.key1=='balance':
-                                self.col_bal.update_one({'balance':self.getDataFromDB()},{"$set":{'balance':self.curBal}})
+                                self.col_bal.update_one({'balance':self.getDataFromDB(self.CustAdhaar)},{"$set":{'balance':self.curBal}})
                                 
                     else:
                         for self.key1, self.val1 in self.i.items():
                             if self.key1=='balance':
-                                self.col_bal.update_one({'balance':self.getDataFromDB()},{"$set":{'balance':self.savingBal}})
+                                self.col_bal.update_one({'balance':self.getDataFromDB(self.CustAdhaar)},{"$set":{'balance':self.savingBal}})
 
-            # if self.custAcctype=="Current":
-            #     self.data={'clientId':self.CustEmail,
-            #     'Account_Type':self.getAccType(),
-            #     'balance':self.curBal}
-            #     self.col_bal.update_one(self.data)
-            # else:
-            #     self.data={'clientId':self.CustEmail,
-            #     'Account_Type':self.getAccType(),
-            #     'balance':self.savingBal}
-            #     self.col_bal.update_one(self.data)
-    def setAccType(self,acctype):
-        self.custAcctype=self.acctype
-        return self.custAcctype
+    
+
+    
     def setPin(self,CustPin):
         self.CustPin=CustPin
         return self.CustPin
-    def getCustId(self):
-        return self.CustEmail
+    def checkCustAdhaarPresent(self,CustAdhar):
+        if self.col_client.count_documents({"adhaar":self.CustAdhaar})!=0:
+            return True
+        return False
     def getCustPin(self):
         return self.CustPin
     def getCurrentBal(self):
-        self.curBal=self.getDataFromDB()
+        self.curBal=self.getDataFromDB(self.CustAdhaar)
         return self.curBal
     def getSavingBal(self):
-        self.savingBal=self.getDataFromDB()
+        self.savingBal=self.getDataFromDB(self.CustAdhaar)
         return self.savingBal
     def calCurWithdraw(self,amount):
-        self.curBal=self.getDataFromDB()
+        self.curBal=self.getDataFromDB(self.CustAdhaar)
         self.curBal=self.curBal-amount
         return self.curBal
     def calCurDeposite(self,amount):
-        self.curBal=self.getDataFromDB()
+        self.curBal=self.getDataFromDB(self.CustAdhaar)
         self.curBal=self.curBal+amount
         return self.curBal
     def calSavingWithdraw(self,amount):
-        self.savingBal=self.getDataFromDB()
+        self.savingBal=self.getDataFromDB(self.CustAdhaar)
         self.savingBal=self.savingBal-amount
         return self.savingBal
     def calSavingDeposit(self,amount):
-        self.savingBal=self.getDataFromDB()
+        self.savingBal=self.getDataFromDB(self.CustAdhaar)
         self.savingBal=self.savingBal+amount
         return self.savingBal   
     def getCurDepositeInput(self):
         print("Current Account Balance : ",self.getCurrentBal())
-        self.amount=float(input("Amount you want to withdraw from Current Account : "))
+        self.amount=int(input("Amount you want to withdraw from Current Account : "))
         if (self.amount+self.curBal)>=0:
             self.calCurDeposite(self.amount)
             self.balanceUpdate()
@@ -233,9 +224,9 @@ class ATM:
     def signIn(self):
         self.count=0
         while(self.count<3):
-            self.CustEmail=input("User Email Id :")
+            self.CustAdhaar=int(input("User Adhaar Card :"))
             self.custPin=int(input("User Pin :"))
-            if self.col_client.count_documents({"email":self.CustEmail})>0 and self.col_client.count_documents({"clientPin":self.custPin})>0:
+            if self.col_client.count_documents({"adhaar":self.CustAdhaar})>0 and self.col_client.count_documents({"clientPin":self.custPin})>0:
                 self.optionMenu()
                 break
             else:
@@ -247,9 +238,36 @@ class ATM:
         self.Custgender=input("Enter Your Gender :")
         self.CustAge=int(input("Enter Your Age :"))
         self.CustEmail=input("Enter Your Email :")
+        
+        self.CustAdhaar=int(input("Enter Your Adhaar Card Number :"))
+        self.flag=True
+        while self.flag:
+            if self.checkCustAdhaarPresent(self.CustAdhaar):
+                print("Please Re-enter Your ! Adhaar Number already exists")
+                self.adharNo=int(input("Enter Your Adhaar Card Number :"))
+                self.CustAdhaar=self.adharNo
+            else:
+                self.flag=False
         self.CustContact=int(input("Enter Your Contact Number :"))
         self.CustPin=int(input("Enter Pin :"))
-        self.custAcctype=input("Enter Account Type :")
+        print("Enter Account Type :\n1. Current \n2. Saving")
+        self.opt=int(input())
+        if self.opt==1:
+            self.custAcctype="Current"
+        elif self.opt==2:
+            self.custAcctype="Saving"
+        else:
+            print("Invalid Choice")
+        print("Enter Minimum Balance :\n1. 500 Rs\n2. 1000 Rs\n3. Customise")
+        self.balopt=int(input())
+        if self.balopt==1:
+            self.intial_bal=500
+        elif self.balopt==2:
+            self.intial_bal=1000
+        elif self.balopt==3:
+            self.intial_bal=int(input())
+        else:
+            print("Invalid Choice")
         self.clientInput()
         self.balanceUpdate()
         self.getLogin()
